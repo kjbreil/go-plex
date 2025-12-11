@@ -73,7 +73,7 @@ func TestPlex_GetShowEpisodes(t *testing.T) {
 		t.Fatal("no shows found")
 	}
 
-	sh := lib.Shows.Title("Bluey")
+	sh := lib.Shows.FindTitle("Bluey")
 
 	err = plexConn.GetShowEpisodes(sh)
 	if err != nil {
@@ -104,6 +104,21 @@ func TestPlex_PopulateLibraries(t *testing.T) {
 func TestPlex_Scrobble(t *testing.T) {
 	// 9744
 	err := plexConn.Scrobble("9744")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPlex_Scan(t *testing.T) {
+	libraries, err := plexConn.GetLibraries()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(libraries) == 0 {
+		t.Fatal("no libraries found")
+	}
+	lib := libraries.Type(library.TypeShow)[0]
+	err = plexConn.ScanLibrary(lib)
 	if err != nil {
 		t.Fatal(err)
 	}

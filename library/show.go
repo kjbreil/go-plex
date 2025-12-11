@@ -4,13 +4,49 @@ import "time"
 
 type Shows []*Show
 
-func (s Shows) Title(t string) *Show {
-	for _, show := range s {
+func (s *Shows) SetRefreshedAt() {
+	for _, show := range *s {
+		show.SetRefreshedAt()
+	}
+}
+func (s *Shows) FindTitle(t string) *Show {
+	for _, show := range *s {
 		if show.Title == t {
 			return show
 		}
 	}
 	return nil
+}
+
+func (s *Shows) FindTvdbID(tvdb int) (*Show, *Season, *Episode) {
+	for _, show := range *s {
+		if show.TVDB == tvdb {
+			return show, nil, nil
+		}
+		for _, season := range show.Seasons {
+			for _, episode := range season.Episodes {
+				if episode.TVDB == tvdb {
+					return show, season, episode
+				}
+			}
+		}
+	}
+	return nil, nil, nil
+}
+
+func (s *Shows) Merge(mergeShows *Shows) {
+	if *s == nil {
+		*s = *mergeShows
+		return
+	}
+	for _, show := range *mergeShows {
+		ss := s.FindTitle(show.Title)
+		if ss != nil {
+			ss.Merge(show)
+		} else {
+			*s = append(*s, show)
+		}
+	}
 }
 
 type Show struct {
@@ -19,7 +55,7 @@ type Show struct {
 	Year           int        `json:"year"`
 	ContentRating  string     `json:"contentRating"`
 	GUID           string     `json:"guid"`
-	TVDB           string     `json:"tvdb"`
+	TVDB           int        `json:"tvdb"`
 	Key            string     `json:"key"`
 	RatingKey      string     `json:"ratingKey"`
 	UserRating     float64    `json:"userRating"`
@@ -29,27 +65,18 @@ type Show struct {
 	AddedAt        time.Time  `json:"addedAt"`
 	UpdatedAt      time.Time  `json:"updatedAt"`
 	Seasons        Seasons    `json:"seasons"`
+	RefreshedAt    time.Time  `json:"refreshedAt"`
 }
 
-type Seasons map[int]*Season
-
-type Season struct {
-	Title     string `json:"title"`
-	GUID      string `json:"guid"`
-	RatingKey string `json:"ratingKey"`
-	Episodes  Episodes
+func (s *Show) SetRefreshedAt() {
+	s.RefreshedAt = time.Now()
+	s.Seasons.SetRefreshedAt()
 }
-type Episodes map[int]*Episode
 
-type Episode struct {
-	Title         string     `json:"title"`
-	GUID          string     `json:"guid"`
-	TVDB          string     `json:"tvdb"`
-	ContentRating string     `json:"contentRating"`
-	Year          int        `json:"year"`
-	RatingKey     string     `json:"ratingKey"`
-	Watched       bool       `json:"watched"`
-	LastViewedAt  *time.Time `json:"lastViewedAt"`
-	AddedAt       time.Time  `json:"addedAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
+func (s *Show) Merge(mergeShow *Show) {
+	if s.RefreshedAt.Before(mergeShow.RefreshedAt) {
+		mergeShow.Seasons.Merge(&s.Seasons)
+		*s = *mergeShow
+	}
+	s.Seasons.Merge(&mergeShow.Seasons)
 }

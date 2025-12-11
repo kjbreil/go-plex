@@ -3,6 +3,7 @@ package plex
 import (
 	"encoding/json"
 	"github.com/kjbreil/go-plex/library"
+	"strconv"
 )
 
 // LibrarySections metadata of your library contents
@@ -247,14 +248,34 @@ type Stream struct {
 // AltGUIDs represents a list of Globally Unique Identifier for a metadata provider that is not
 type AltGUIDs []AltGUID
 
-func (ag AltGUIDs) TVDB() string {
+func (ag AltGUIDs) TVDB() int {
 	for _, alt := range ag {
 		if alt.ID[:4] == "tvdb" {
-			return alt.ID[7:]
+
+			id, err := strconv.Atoi(alt.ID[7:])
+			if err != nil {
+				return 0
+			}
+			return id
 		}
 	}
 
-	return ""
+	return 0
+}
+
+func (ag AltGUIDs) TMDB() int {
+	for _, alt := range ag {
+		if alt.ID[:4] == "tmdb" {
+
+			id, err := strconv.Atoi(alt.ID[7:])
+			if err != nil {
+				return 0
+			}
+			return id
+		}
+	}
+
+	return 0
 }
 
 // AltGUID represents a Globally Unique Identifier for a metadata provider that is not actively being used.
