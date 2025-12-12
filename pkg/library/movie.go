@@ -2,7 +2,7 @@ package library
 
 import "time"
 
-type Movies []*Movie
+type Movies []*Movie //nolint:recvcheck // Mixed receivers are intentional for slice type
 
 func (m *Movies) SetRefreshedAt() {
 	for _, movie := range *m {

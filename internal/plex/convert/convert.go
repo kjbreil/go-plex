@@ -17,6 +17,7 @@ func SearchResultsToShows(s *api.SearchResults) *library.Shows {
 			Summary:        m.Summary,
 			ContentRating:  m.ContentRating,
 			GUID:           m.GUID,
+			TVDB:           0,
 			Key:            m.Key,
 			RatingKey:      m.RatingKey,
 			UserRating:     m.UserRating,
@@ -25,6 +26,7 @@ func SearchResultsToShows(s *api.SearchResults) *library.Shows {
 			LastViewedAt:   timeOrNil(m.LastViewedAt),
 			AddedAt:        time.Unix(int64(m.AddedAt), 0),
 			UpdatedAt:      time.Unix(int64(m.UpdatedAt), 0),
+			Seasons:        nil,
 			RefreshedAt:    time.Now(),
 		}
 	}
@@ -41,6 +43,7 @@ func SearchResultsToMovies(s *api.SearchResults) *library.Movies {
 			Summary:        m.Summary,
 			ContentRating:  m.ContentRating,
 			GUID:           m.GUID,
+			TMDB:           0,
 			Key:            m.Key,
 			RatingKey:      m.RatingKey,
 			UserRating:     m.UserRating,
@@ -64,6 +67,7 @@ func EpisodeResultsToSeasons(s *api.SearchResultsEpisode) *library.Seasons {
 			Number:      int(m.Index),
 			GUID:        m.GUID,
 			RatingKey:   m.RatingKey,
+			Episodes:    nil,
 			RefreshedAt: time.Now(),
 		}
 	}
@@ -79,6 +83,7 @@ func EpisodeResultsToEpisodes(s *api.SearchResultsEpisode) *library.Episodes {
 			Title:         m.Title,
 			SeasonNumber:  int(m.Index),
 			GUID:          m.GUID,
+			TVDB:          0,
 			RatingKey:     m.RatingKey,
 			ContentRating: m.ContentRating,
 			Year:          m.Year,

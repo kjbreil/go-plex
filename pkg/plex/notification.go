@@ -6,8 +6,8 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/coder/websocket"
 	"github.com/kjbreil/go-plex/internal/plex/notification"
-	"nhooyr.io/websocket"
 )
 
 // NotificationContainer is an alias for the internal notification container type.
@@ -52,32 +52,41 @@ func (p *Plex) SubscribeToNotifications() {
 	websocketURL := url.URL{Scheme: "ws", Host: p.url.Host, Path: "/:/websockets/notifications"}
 
 	dialOpts := &websocket.DialOptions{
-		HTTPHeader: make(http.Header),
+		HTTPHeader:           make(http.Header),
+		HTTPClient:           nil,
+		Host:                 "",
+		Subprotocols:         nil,
+		CompressionMode:      0,
+		CompressionThreshold: 0,
+		OnPingReceived:       nil,
+		OnPongReceived:       nil,
 	}
 	dialOpts.HTTPHeader.Set("X-Plex-Token", p.token)
 
-	c, _, err := websocket.Dial(p.ctx, websocketURL.String(), dialOpts)
+	c, resp, dialErr := websocket.Dial(p.ctx, websocketURL.String(), dialOpts)
+	if resp != nil {
+		_ = resp.Body.Close()
+	}
 
-	if err != nil {
-		p.logger.Error("could not dial websocket", "err", err.Error())
+	if dialErr != nil {
+		p.logger.Error("could not dial websocket", "err", dialErr.Error())
 		return
 	}
 
+	p.wg.Add(1)
 	go func() {
-		p.wg.Add(1)
-
-		defer func(c *websocket.Conn, code websocket.StatusCode, reason string) {
+		defer func(_ *websocket.Conn, _ websocket.StatusCode, _ string) {
 			p.wg.Done()
 			_ = c.CloseNow()
 		}(c, websocket.StatusNormalClosure, "")
 
 		for {
-			messageType, message, err := c.Read(p.ctx)
+			messageType, message, readErr := c.Read(p.ctx)
 
-			if err != nil {
+			if readErr != nil {
 				if p.ctx.Err() == nil {
 					// Probably need to reconnect
-					p.logger.Error("could not read websocket", "err", err.Error())
+					p.logger.Error("could not read websocket", "err", readErr.Error())
 				} else {
 					return
 				}
@@ -90,8 +99,8 @@ func (p *Plex) SubscribeToNotifications() {
 
 			var notif notification.WebsocketNotification
 
-			if err = json.Unmarshal(message, &notif); err != nil {
-				p.logger.Error("websocket convert message to json failed", "err", err.Error())
+			if unmarshalErr := json.Unmarshal(message, &notif); unmarshalErr != nil {
+				p.logger.Error("websocket convert message to json failed", "err", unmarshalErr.Error())
 				continue
 			}
 
@@ -103,28 +112,27 @@ func (p *Plex) SubscribeToNotifications() {
 		}
 	}()
 
+	p.wg.Add(1)
 	go func() {
-		p.wg.Add(1)
 		defer p.wg.Done()
 		ticker := time.NewTicker(time.Second)
 		defer ticker.Stop()
-		var err error
 
 		for {
 			select {
 			case t := <-ticker.C:
-				err = c.Write(p.ctx, websocket.MessageText, []byte(t.String()))
+				writeErr := c.Write(p.ctx, websocket.MessageText, []byte(t.String()))
 
-				if err != nil {
-					p.logger.Error("failed to write to websocket", "err", err.Error())
+				if writeErr != nil {
+					p.logger.Error("failed to write to websocket", "err", writeErr.Error())
 				}
 			case <-p.ctx.Done():
 				// To cleanly close a connection, a client should send a close
 				// frame and wait for the server to close the connection.
-				err = c.Close(websocket.StatusNormalClosure, "")
+				closeErr := c.Close(websocket.StatusNormalClosure, "")
 
-				if err != nil {
-					p.logger.Error("failed to close websocket", "err", err.Error())
+				if closeErr != nil {
+					p.logger.Error("failed to close websocket", "err", closeErr.Error())
 				}
 				return
 			}

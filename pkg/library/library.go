@@ -32,7 +32,7 @@ type Library struct {
 	RefreshedAt time.Time `json:"refreshedAt"`
 }
 
-type LibraryType int
+type LibraryType int //nolint:revive,recvcheck // Type stutters but is used by generated code
 
 func (l *LibraryType) UnmarshalJSON(b []byte) error {
 	var s string

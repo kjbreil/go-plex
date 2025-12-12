@@ -3,10 +3,11 @@ package plex
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"time"
 
 	webhook "github.com/kjbreil/go-plex/internal/plex/webhook"
 )
@@ -26,19 +27,19 @@ func NewWebhook(port int, ips ...net.IP) *Webhook {
 		port: port,
 		ips:  ips,
 		events: map[string]func(w WebhookEvent){
-			"media.play":     func(w WebhookEvent) {},
-			"media.pause":    func(w WebhookEvent) {},
-			"media.resume":   func(w WebhookEvent) {},
-			"media.stop":     func(w WebhookEvent) {},
-			"media.scrobble": func(w WebhookEvent) {},
-			"media.rate":     func(w WebhookEvent) {},
+			"media.play":     func(_ WebhookEvent) {},
+			"media.pause":    func(_ WebhookEvent) {},
+			"media.resume":   func(_ WebhookEvent) {},
+			"media.stop":     func(_ WebhookEvent) {},
+			"media.scrobble": func(_ WebhookEvent) {},
+			"media.rate":     func(_ WebhookEvent) {},
 		},
 	}
 }
 
 func (p *Plex) ServeWebhook() {
 	for _, ip := range p.Webhook.ips {
-		hookUrl := fmt.Sprintf("http://%s:%d/", ip.String(), p.Webhook.port)
+		hookURL := "http://" + net.JoinHostPort(ip.String(), strconv.Itoa(p.Webhook.port)) + "/"
 
 		hooks, err := p.getWebhooks()
 		if err != nil {
@@ -47,12 +48,12 @@ func (p *Plex) ServeWebhook() {
 
 		var exists bool
 		for _, hook := range hooks {
-			if hook == hookUrl {
+			if hook == hookURL {
 				exists = true
 			}
 		}
 		if !exists {
-			err = p.addWebhook(hookUrl)
+			err = p.addWebhook(hookURL)
 			if err != nil {
 				panic(err)
 			}
@@ -61,18 +62,20 @@ func (p *Plex) ServeWebhook() {
 		http.HandleFunc("/", p.Webhook.handler)
 
 		go func() {
-			err := http.ListenAndServe(fmt.Sprintf("%s:%d", ip.String(), p.Webhook.port), nil)
-			if err != nil {
-				panic(err)
+			server := &http.Server{
+				Addr:              net.JoinHostPort(ip.String(), strconv.Itoa(p.Webhook.port)),
+				ReadHeaderTimeout: 10 * time.Second,
+			}
+			if serveErr := server.ListenAndServe(); serveErr != nil {
+				p.logger.Error("webhook server error", "err", serveErr)
 			}
 		}()
 	}
 }
 
 // Handler listens for plex webhooks and executes the corresponding function.
-func (wh *Webhook) handler(w http.ResponseWriter, r *http.Request) {
+func (wh *Webhook) handler(_ http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(0); err != nil {
-		fmt.Printf("can not read form: %v", err)
 		return
 	}
 
@@ -82,14 +85,12 @@ func (wh *Webhook) handler(w http.ResponseWriter, r *http.Request) {
 
 	if hasPayload {
 		if err := json.Unmarshal([]byte(payload[0]), &hookEvent); err != nil {
-			fmt.Printf("can not parse json: %v", err)
 			return
 		}
 
 		fn, ok := wh.events[hookEvent.Event]
 
 		if !ok {
-			fmt.Printf("unknown event name: %v\n", hookEvent.Event)
 			return
 		}
 
@@ -187,9 +188,9 @@ func (p *Plex) removeWebhooks() {
 		return
 	}
 	for _, ip := range p.Webhook.ips {
-		hookUrl := fmt.Sprintf("http://%s:%d/", ip.String(), p.Webhook.port)
+		hookURL := "http://" + net.JoinHostPort(ip.String(), strconv.Itoa(p.Webhook.port)) + "/"
 
-		err := p.removeWebhook(hookUrl)
+		err := p.removeWebhook(hookURL)
 		if err != nil {
 			panic(err)
 		}

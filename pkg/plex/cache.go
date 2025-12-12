@@ -8,25 +8,31 @@ import (
 )
 
 func (p *Plex) mergeCache() {
-	if p.cacheLibrary != "" {
-		var cacheLibrary library.Libraries
-		var err error
-		var file []byte
-		file, err = os.ReadFile(p.cacheLibrary)
-		if err == nil {
-			err = json.Unmarshal(file, &cacheLibrary)
-			if err == nil {
-			topLoop:
-				for _, cl := range cacheLibrary {
-					for i := range p.Libraries {
-						if cl.Title == p.Libraries[i].Title {
-							p.Libraries[i].Merge(cl)
-							continue topLoop
-						}
-					}
-					p.Libraries = append(p.Libraries, cl)
-				}
+	if p.cacheLibrary == "" {
+		return
+	}
+
+	file, err := os.ReadFile(p.cacheLibrary)
+	if err != nil {
+		return
+	}
+
+	var cacheLibrary library.Libraries
+	if err = json.Unmarshal(file, &cacheLibrary); err != nil {
+		return
+	}
+
+	for _, cl := range cacheLibrary {
+		merged := false
+		for i := range p.Libraries {
+			if cl.Title == p.Libraries[i].Title {
+				p.Libraries[i].Merge(cl)
+				merged = true
+				break
 			}
+		}
+		if !merged {
+			p.Libraries = append(p.Libraries, cl)
 		}
 	}
 }
@@ -35,7 +41,7 @@ func (p *Plex) WriteCache() {
 	if p.cacheLibrary != "" {
 		b, err := json.Marshal(&p.Libraries)
 		if err == nil {
-			_ = os.WriteFile(p.cacheLibrary, b, 0644)
+			_ = os.WriteFile(p.cacheLibrary, b, 0600)
 		}
 	}
 }

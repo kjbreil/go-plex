@@ -37,9 +37,9 @@ type Plex struct {
 	logger       *slog.Logger
 }
 
-type PlexOptions func(*Plex)
+type Options func(*Plex)
 
-func New(baseURL, token string, options ...PlexOptions) (*Plex, error) {
+func New(baseURL, token string, options ...Options) (*Plex, error) {
 	var p Plex
 
 	p.ctx, p.cancel = context.WithCancel(context.Background())
@@ -153,7 +153,7 @@ func (p *Plex) GetLibraryMovies(lib *library.Library, filter string) error {
 			}
 			md, err = p.GetMetadata(ratingKey)
 			if err != nil {
-				slog.Error("could not Get metadata", "err", err.Error())
+				slog.Error("could not Get metadata", "ratingKey", ratingKey, "movie", movie.Title, "err", err.Error())
 			} else {
 				convert.UpdateMovieFromMetadata(&md, movie)
 			}

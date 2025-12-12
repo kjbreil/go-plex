@@ -12,13 +12,22 @@ func MetadataToShow(m *api.MediaMetadata) *library.Show {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.Type == "show" {
 			return &library.Show{
-				Title:         md.Title,
-				Year:          md.Year,
-				Summary:       md.Summary,
-				ContentRating: md.ContentRating,
-				RatingKey:     md.RatingKey,
-				TVDB:          md.AltGUIDs.TVDB(),
-				GUID:          md.GUID,
+				Title:          md.Title,
+				Summary:        md.Summary,
+				Year:           md.Year,
+				ContentRating:  md.ContentRating,
+				GUID:           md.GUID,
+				TVDB:           md.AltGUIDs.TVDB(),
+				Key:            "",
+				RatingKey:      md.RatingKey,
+				UserRating:     0,
+				AudienceRating: 0,
+				Watched:        false,
+				LastViewedAt:   nil,
+				AddedAt:        time.Time{},
+				UpdatedAt:      time.Time{},
+				Seasons:        nil,
+				RefreshedAt:    time.Time{},
 			}
 		}
 	}
@@ -33,12 +42,16 @@ func MetadataToEpisode(m *api.MediaMetadata) *library.Episode {
 				Title:         md.Title,
 				SeasonNumber:  int(md.Index),
 				GUID:          md.GUID,
-				RatingKey:     md.RatingKey,
+				TVDB:          0,
 				ContentRating: md.ContentRating,
 				Year:          md.Year,
+				RatingKey:     md.RatingKey,
 				Watched:       md.ViewCount > 0,
 				LastViewedAt:  timeOrNil(md.LastViewedAt),
 				AddedAt:       time.Unix(int64(md.AddedAt), 0),
+				UpdatedAt:     time.Time{},
+				RefreshedAt:   time.Time{},
+				Duration:      0,
 			}
 		}
 	}

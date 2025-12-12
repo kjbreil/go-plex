@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net"
 	"os"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/kjbreil/go-plex/pkg/plex"
 )
+
+const webhookPort = 8081
 
 func main() {
 	plexHost := os.Getenv("PLEX_HOST")
@@ -40,7 +41,9 @@ func main() {
 	ctrlC := make(chan os.Signal, 1)
 	signal.Notify(ctrlC, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 
-	go setupWebhooks(conn)
+	go func() {
+		_ = setupWebhooks(conn)
+	}()
 
 	<-ctrlC
 
@@ -49,31 +52,45 @@ func main() {
 
 func setupWebhooks(conn *plex.Plex) error {
 	ip := net.ParseIP("10.0.2.2")
+	logger := slog.Default()
 
-	conn.Webhook = plex.NewWebhook(8081, ip)
+	conn.Webhook = plex.NewWebhook(webhookPort, ip)
 
-	conn.Webhook.OnPlay(func(w plex.WebhookEvent) {
-		fmt.Printf("%s is playing\n", w.Metadata.Title)
-	})
+	if err := conn.Webhook.OnPlay(func(w plex.WebhookEvent) {
+		logger.Info("media playing", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
 
-	conn.Webhook.OnPause(func(w plex.WebhookEvent) {
-		fmt.Printf("%s is paused\n", w.Metadata.Title)
-	})
+	if err := conn.Webhook.OnPause(func(w plex.WebhookEvent) {
+		logger.Info("media paused", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
 
-	conn.Webhook.OnResume(func(w plex.WebhookEvent) {
-		fmt.Printf("%s has resumed\n", w.Metadata.Title)
-	})
+	if err := conn.Webhook.OnResume(func(w plex.WebhookEvent) {
+		logger.Info("media resumed", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
 
-	conn.Webhook.OnStop(func(w plex.WebhookEvent) {
-		fmt.Printf("%s has stopped\n", w.Metadata.Title)
-	})
-	conn.Webhook.OnRate(func(w plex.WebhookEvent) {
-		fmt.Printf("%s has been rated\n", w.Metadata.Title)
-	})
+	if err := conn.Webhook.OnStop(func(w plex.WebhookEvent) {
+		logger.Info("media stopped", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
 
-	conn.Webhook.OnScrobble(func(w plex.WebhookEvent) {
-		fmt.Printf("%s has been scrobbled\n", w.Metadata.Title)
-	})
+	if err := conn.Webhook.OnRate(func(w plex.WebhookEvent) {
+		logger.Info("media rated", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
+
+	if err := conn.Webhook.OnScrobble(func(w plex.WebhookEvent) {
+		logger.Info("media scrobbled", "title", w.Metadata.Title)
+	}); err != nil {
+		return err
+	}
 
 	conn.ServeWebhook()
 

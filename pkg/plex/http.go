@@ -2,6 +2,7 @@ package plex
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -26,7 +27,7 @@ func getHost[T any](p *Plex, host string, pa string, query url.Values) (T, error
 	u.Path = path.Join(u.Path, pa)
 	u.RawQuery = query.Encode()
 
-	req, reqErr := http.NewRequest(http.MethodGet, u.String(), nil)
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodGet, u.String(), nil)
 	if reqErr != nil {
 		return rtn, reqErr
 	}
@@ -36,12 +37,9 @@ func getHost[T any](p *Plex, host string, pa string, query url.Values) (T, error
 	if err != nil {
 		return rtn, err
 	}
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(resp.Body)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return rtn, errors.New(resp.Status)
@@ -65,7 +63,7 @@ func postHost(p *Plex, host string, pa string, body []byte) error {
 	}
 	u.Path = path.Join(p.url.Path, pa)
 
-	req, reqErr := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(body))
+	req, reqErr := http.NewRequestWithContext(context.Background(), http.MethodPost, u.String(), bytes.NewBuffer(body))
 	if reqErr != nil {
 		return reqErr
 	}
@@ -76,12 +74,9 @@ func postHost(p *Plex, host string, pa string, body []byte) error {
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			panic(err)
-		}
-	}(resp.Body)
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return errors.New(resp.Status)
