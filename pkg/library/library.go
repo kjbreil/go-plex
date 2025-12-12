@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Library shows plex library metadata
+// Library shows plex library metadata.
 type Library struct {
 	Location   []Location  `json:"Location"`
 	Agent      string      `json:"agent"`
@@ -36,10 +36,11 @@ type LibraryType int
 
 func (l *LibraryType) UnmarshalJSON(b []byte) error {
 	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
+	var i int
+	err := json.Unmarshal(b, &s)
+	if err != nil {
 		// try to parse as a int
-		var i int
-		if err := json.Unmarshal(b, &i); err != nil {
+		if err = json.Unmarshal(b, &i); err != nil {
 			return err
 		}
 		*l = LibraryType(i)
@@ -61,7 +62,7 @@ const (
 	TypeMovie
 )
 
-// Location is the path of a plex server directory
+// Location is the path of a plex server directory.
 type Location struct {
 	ID   int    `json:"id"`
 	Path string `json:"path"`

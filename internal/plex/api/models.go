@@ -1,12 +1,13 @@
-package plex
+package api
 
 import (
 	"encoding/json"
-	"github.com/kjbreil/go-plex/library"
 	"strconv"
+
+	"github.com/kjbreil/go-plex/pkg/library"
 )
 
-// LibrarySections metadata of your library contents
+// LibrarySections metadata of your library contents.
 type LibrarySections struct {
 	MediaContainer struct {
 		Directory library.Libraries `json:"Directory"`
@@ -19,7 +20,7 @@ type SearchMediaContainer struct {
 	Provider []Provider
 }
 
-// MediaContainer contains media info
+// MediaContainer contains media info.
 type MediaContainer struct {
 	Metadata            []Metadata `json:"Metadata"`
 	AllowSync           bool       `json:"allowSync"`
@@ -88,7 +89,7 @@ type Metadata struct {
 	Writer                []TaggedData `json:"Writer"`
 }
 
-// User plex server user. only difference is id is a string
+// User plex server user. only difference is id is a string.
 type User struct {
 	// ID is an int when signing in to Plex.tv but a string when access own server
 	ID                  string `json:"id"`
@@ -149,7 +150,7 @@ type Session struct {
 	Location  string `json:"location"`
 }
 
-// CurrentSessions metadata of users consuming media
+// CurrentSessions metadata of users consuming media.
 type CurrentSessions struct {
 	MediaContainer struct {
 		Metadata []Metadata `json:"Metadata"`
@@ -157,7 +158,7 @@ type CurrentSessions struct {
 	} `json:"MediaContainer"`
 }
 
-// Media media info
+// Media media info.
 type Media struct {
 	AspectRatio           json.Number `json:"aspectRatio"`
 	AudioChannels         int         `json:"audioChannels"`
@@ -169,7 +170,7 @@ type Media struct {
 	Has64bitOffsets       bool        `json:"has64bitOffsets"`
 	Height                int         `json:"height"`
 	ID                    json.Number `json:"id"`
-	OptimizedForStreaming boolOrInt   `json:"optimizedForStreaming"` // plex can return int (GetMetadata(), GetPlaylist()) or boolean (GetSessions()): 0 or 1; true or false
+	OptimizedForStreaming BoolOrInt   `json:"optimizedForStreaming"` // plex can return int (GetMetadata(), GetPlaylist()) or boolean (GetSessions()): 0 or 1; true or false
 
 	Selected        bool   `json:"selected"`
 	VideoCodec      string `json:"videoCodec"`
@@ -191,7 +192,7 @@ type Part struct {
 	HasThumbnail          string      `json:"hasThumbnail"`
 	ID                    json.Number `json:"id"`
 	Key                   string      `json:"key"`
-	OptimizedForStreaming boolOrInt   `json:"optimizedForStreaming"`
+	OptimizedForStreaming BoolOrInt   `json:"optimizedForStreaming"`
 	Selected              bool        `json:"selected"`
 	Size                  int         `json:"size"`
 	Stream                []Stream    `json:"Stream"`
@@ -245,13 +246,12 @@ type Stream struct {
 	Width              int         `json:"width"`
 }
 
-// AltGUIDs represents a list of Globally Unique Identifier for a metadata provider that is not
+// AltGUIDs represents a list of Globally Unique Identifier for a metadata provider that is not.
 type AltGUIDs []AltGUID
 
 func (ag AltGUIDs) TVDB() int {
 	for _, alt := range ag {
-		if alt.ID[:4] == "tvdb" {
-
+		if len(alt.ID) >= 4 && alt.ID[:4] == "tvdb" {
 			id, err := strconv.Atoi(alt.ID[7:])
 			if err != nil {
 				return 0
@@ -265,8 +265,7 @@ func (ag AltGUIDs) TVDB() int {
 
 func (ag AltGUIDs) TMDB() int {
 	for _, alt := range ag {
-		if alt.ID[:4] == "tmdb" {
-
+		if len(alt.ID) >= 4 && alt.ID[:4] == "tmdb" {
 			id, err := strconv.Atoi(alt.ID[7:])
 			if err != nil {
 				return 0
@@ -281,4 +280,19 @@ func (ag AltGUIDs) TMDB() int {
 // AltGUID represents a Globally Unique Identifier for a metadata provider that is not actively being used.
 type AltGUID struct {
 	ID string `json:"id"`
+}
+
+// SearchResults ...
+type SearchResults struct {
+	MediaContainer SearchMediaContainer `json:"MediaContainer"`
+}
+
+// SearchResultsEpisode contains metadata about an episode.
+type SearchResultsEpisode struct {
+	MediaContainer MediaContainer `json:"MediaContainer"`
+}
+
+// MediaMetadata wraps MediaContainer for metadata responses.
+type MediaMetadata struct {
+	MediaContainer MediaContainer `json:"MediaContainer"`
 }

@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/kjbreil/go-plex/plex"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/kjbreil/go-plex/pkg/plex"
 )
 
 func main() {
@@ -36,41 +37,17 @@ func main() {
 		logger.Info("plex library refreshed", "duration", time.Since(start))
 	}()
 
-	// conn.PopulateLibraries()()
-
 	ctrlC := make(chan os.Signal, 1)
 	signal.Notify(ctrlC, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	//
-	// conn.Websocket.OnPlaying(func(n plex.NotificationContainer) {
-	//
-	// 	for _, ps := range n.PlaySessionStateNotification {
-	// 		// md, err := conn.GetMetadata(ps.RatingKey)
-	// 		// if err != nil {
-	// 		// 	panic(err)
-	// 		// }
-	// 		// episode := md.Episode()
-	// 		// fmt.Println(episode)
-	// 		show, season, episode := conn.Libraries.FindEpisode(ps.RatingKey)
-	// 		fmt.Println(show, season, episode)
-	// 	}
-	//
-	// })
-	//
-	// conn.Websocket.OnActivity(func(n plex.NotificationContainer) {
-	// })
-	//
-	// conn.SubscribeToNotifications()
 
 	go setupWebhooks(conn)
 
 	<-ctrlC
 
 	conn.Close()
-
 }
 
 func setupWebhooks(conn *plex.Plex) error {
-
 	ip := net.ParseIP("10.0.2.2")
 
 	conn.Webhook = plex.NewWebhook(8081, ip)

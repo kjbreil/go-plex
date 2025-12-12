@@ -1,7 +1,7 @@
-package plex
+package webhook
 
-// WebhookEvent contains a webhooks information
-type WebhookEvent struct {
+// Event contains a webhooks information.
+type Event struct {
 	Event   string `json:"event"`
 	User    bool   `json:"user"`
 	Owner   bool   `json:"owner"`

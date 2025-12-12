@@ -3,8 +3,6 @@ package plex
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/kjbreil/go-plex/library"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -12,7 +10,13 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/kjbreil/go-plex/internal/plex/api"
+	"github.com/kjbreil/go-plex/internal/plex/convert"
+	"github.com/kjbreil/go-plex/pkg/library"
 )
+
+const bufLen = 3
 
 type Plex struct {
 	url            *url.URL
@@ -91,9 +95,9 @@ func New(baseURL, token string, options ...PlexOptions) (*Plex, error) {
 	return &p, err
 }
 
-// GetLibraries of your Plex server
+// GetLibraries of your Plex server.
 func (p *Plex) GetLibraries() (library.Libraries, error) {
-	resp, err := Get[LibrarySections](p, "/library/sections", nil)
+	resp, err := get[api.LibrarySections](p, "/library/sections", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -103,34 +107,33 @@ func (p *Plex) GetLibraries() (library.Libraries, error) {
 	return resp.MediaContainer.Directory, nil
 }
 
-// GetLibraryShows adds the shows to the Library
+// GetLibraryShows adds the shows to the Library.
 func (p *Plex) GetLibraryShows(lib *library.Library, filter string) error {
 	query := path.Join("/library/sections/", lib.Key, "all"+filter)
-	resp, err := Get[SearchResults](p, query, nil)
-	lib.Shows.Merge(resp.toShows())
-	var md MediaMetadata
+	resp, err := get[api.SearchResults](p, query, nil)
+	lib.Shows.Merge(convert.SearchResultsToShows(&resp))
+	var md api.MediaMetadata
 
 	for _, show := range lib.Shows {
-		// p.BufGetMetadata(show.RatingKey, show)
 		md, err = p.GetMetadata(show.RatingKey)
 		if err != nil {
 			return err
 		}
 
-		md.updateShow(show)
+		convert.UpdateShowFromMetadata(&md, show)
 	}
 
 	return err
 }
 
-// GetLibraryShows adds the shows to the Library
+// GetLibraryMovies adds the movies to the Library.
 func (p *Plex) GetLibraryMovies(lib *library.Library, filter string) error {
 	query := path.Join("/library/sections/", lib.Key, "all"+filter)
-	resp, err := Get[SearchResults](p, query, nil)
+	resp, err := get[api.SearchResults](p, query, nil)
 
-	respMovies := resp.toMovies()
+	respMovies := convert.SearchResultsToMovies(&resp)
 	lib.Movies.Merge(respMovies)
-	var md MediaMetadata
+	var md api.MediaMetadata
 
 	buf := make(chan struct{}, bufLen)
 	wg := sync.WaitGroup{}
@@ -139,7 +142,6 @@ func (p *Plex) GetLibraryMovies(lib *library.Library, filter string) error {
 
 	for _, movie := range lib.Movies {
 		go func(ratingKey string) {
-
 			buf <- struct{}{}
 			defer func() {
 				<-buf
@@ -153,11 +155,9 @@ func (p *Plex) GetLibraryMovies(lib *library.Library, filter string) error {
 			if err != nil {
 				slog.Error("could not Get metadata", "err", err.Error())
 			} else {
-				md.updateMovie(movie)
+				convert.UpdateMovieFromMetadata(&md, movie)
 			}
-
 		}(movie.RatingKey)
-
 	}
 
 	wg.Wait()
@@ -165,35 +165,34 @@ func (p *Plex) GetLibraryMovies(lib *library.Library, filter string) error {
 	return err
 }
 
-// GetSessions of devices currently consuming media
-func (p *Plex) GetSessions() (CurrentSessions, error) {
-	path := "/status/sessions"
-	return Get[CurrentSessions](p, path, nil)
+// GetSessions of devices currently consuming media.
+func (p *Plex) GetSessions() (api.CurrentSessions, error) {
+	urlPath := "/status/sessions"
+	return get[api.CurrentSessions](p, urlPath, nil)
 }
 
 func (p *Plex) GetShowEpisodes(show *library.Show) error {
 	if show == nil {
-		return fmt.Errorf("no show provided")
+		return errors.New("no show provided")
 	}
 	query := path.Join("/library/metadata/", show.RatingKey, "children")
 
-	resp, err := Get[SearchResultsEpisode](p, query, nil)
+	resp, err := get[api.SearchResultsEpisode](p, query, nil)
 	if err != nil {
 		return err
 	}
-	show.Seasons.Merge(resp.toSeasons())
+	show.Seasons.Merge(convert.EpisodeResultsToSeasons(&resp))
 
 	for _, sea := range show.Seasons {
-
 		query = path.Join("/library/metadata/", sea.RatingKey, "children")
-		resp, err = Get[SearchResultsEpisode](p, query, nil)
+		resp, err = get[api.SearchResultsEpisode](p, query, nil)
 		if err != nil {
 			p.logger.Error("could not get season metadata", "err", err.Error())
 			continue
 		}
-		sea.Episodes.Merge(resp.toEpisodes())
+		sea.Episodes.Merge(convert.EpisodeResultsToEpisodes(&resp))
 
-		var md MediaMetadata
+		var md api.MediaMetadata
 
 		for _, ep := range sea.Episodes {
 			md, err = p.GetMetadata(ep.RatingKey)
@@ -201,20 +200,20 @@ func (p *Plex) GetShowEpisodes(show *library.Show) error {
 				p.logger.Error("could not get episode metadata", "err", err.Error())
 				continue
 			}
-			md.updateEpisode(ep)
+			convert.UpdateEpisodeFromMetadata(&md, ep)
 		}
 	}
 
 	return err
 }
 
-func (p *Plex) GetMetadata(ratingKey string) (MediaMetadata, error) {
+func (p *Plex) GetMetadata(ratingKey string) (api.MediaMetadata, error) {
 	if ratingKey == "" {
-		return MediaMetadata{}, errors.New("no ratingKey provided")
+		return api.MediaMetadata{}, errors.New("no ratingKey provided")
 	}
 	query := path.Join("/library/metadata/", ratingKey)
 
-	resp, err := Get[MediaMetadata](p, query, nil)
+	resp, err := get[api.MediaMetadata](p, query, nil)
 
 	return resp, err
 }
@@ -226,7 +225,7 @@ func (p *Plex) Scrobble(key string) error {
 	query.Add("key", key)
 	query.Add("identifier", "com.plexapp.plugins.library")
 
-	_, err := Get[blank](p, "/:/", nil)
+	_, err := get[blank](p, "/:/", nil)
 	if err != nil {
 		return err
 	}
@@ -238,7 +237,7 @@ func (p *Plex) UnScrobble(key string) error {
 	query.Add("key", key)
 	query.Add("identifier", "com.plexapp.plugins.library")
 
-	_, err := Get[blank](p, "/:/", nil)
+	_, err := get[blank](p, "/:/", nil)
 	if err != nil {
 		return err
 	}
@@ -251,7 +250,7 @@ func (p *Plex) ScanLibrary(lib *library.Library) error {
 	for _, loc := range lib.Location {
 		query := url.Values{}
 		query.Add("path", loc.Path)
-		_, err := Get[blank](p, urlPath, query)
+		_, err := get[blank](p, urlPath, query)
 		if err != nil {
 			return err
 		}

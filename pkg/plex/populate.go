@@ -1,10 +1,11 @@
 package plex
 
 import (
-	"github.com/kjbreil/go-plex/library"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/kjbreil/go-plex/pkg/library"
 )
 
 func (p *Plex) InitLibraries() error {
@@ -16,13 +17,10 @@ func (p *Plex) InitLibraries() error {
 
 	p.mergeCache()
 
-	// go p.PopulateLibraries()
-
 	return nil
 }
 
 func (p *Plex) PopulateLibraries() func() {
-
 	done := make(chan struct{}, 1)
 
 	go func() {
@@ -41,7 +39,6 @@ func (p *Plex) PopulateLibraries() func() {
 					slog.Error("could not Get library shows", "err", err.Error())
 					continue
 				}
-				// wg.Add(len(lib.Shows))
 			}
 			if lib.Type == library.TypeMovie {
 				err = p.GetLibraryMovies(lib, "")

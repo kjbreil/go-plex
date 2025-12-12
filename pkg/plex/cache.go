@@ -2,8 +2,9 @@ package plex
 
 import (
 	"encoding/json"
-	"github.com/kjbreil/go-plex/library"
 	"os"
+
+	"github.com/kjbreil/go-plex/pkg/library"
 )
 
 func (p *Plex) mergeCache() {

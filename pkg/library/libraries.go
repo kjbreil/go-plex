@@ -18,7 +18,7 @@ func (l Libraries) Type(t LibraryType) Libraries {
 	return nl
 }
 
-// FindEpisode gets the show season and epsidoe for a RatingKey
+// FindEpisode gets the show season and epsidoe for a RatingKey.
 func (l Libraries) FindEpisode(ratingKey string) (*Show, *Season, *Episode) {
 	for _, lib := range l {
 		for _, show := range lib.Shows {
@@ -34,7 +34,7 @@ func (l Libraries) FindEpisode(ratingKey string) (*Show, *Season, *Episode) {
 	return nil, nil, nil
 }
 
-// FindSeason gets the show season for a RatingKey for the season itself or RatingKey of an episode in the season
+// FindSeason gets the show season for a RatingKey for the season itself or RatingKey of an episode in the season.
 func (l Libraries) FindSeason(ratingKey string) (*Show, *Season) {
 	for _, lib := range l {
 		for _, show := range lib.Shows {
@@ -54,7 +54,7 @@ func (l Libraries) FindSeason(ratingKey string) (*Show, *Season) {
 }
 
 // FindShow gets the show for a RatingKey for the show itself or RatingKey of a season contained in the show or an
-// episode contained in the show
+// episode contained in the show.
 func (l Libraries) FindShow(ratingKey string) *Show {
 	for _, lib := range l {
 		for _, show := range lib.Shows {

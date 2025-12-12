@@ -2,9 +2,10 @@ package plex
 
 import (
 	"fmt"
-	"github.com/kjbreil/go-plex/library"
 	"os"
 	"testing"
+
+	"github.com/kjbreil/go-plex/pkg/library"
 )
 
 var (
@@ -27,6 +28,9 @@ func init() {
 }
 
 func TestPlex_GetLibraries(t *testing.T) {
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
 	libraries, err := plexConn.GetLibraries()
 	if err != nil {
 		t.Fatal(err)
@@ -37,6 +41,9 @@ func TestPlex_GetLibraries(t *testing.T) {
 }
 
 func TestPlex_GetLibraryShows(t *testing.T) {
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
 	libraries, err := plexConn.GetLibraries()
 	if err != nil {
 		t.Fatal(err)
@@ -44,7 +51,11 @@ func TestPlex_GetLibraryShows(t *testing.T) {
 	if len(libraries) == 0 {
 		t.Fatal("no libraries found")
 	}
-	lib := libraries.Type(library.TypeShow)[0]
+	libs := libraries.Type(library.TypeShow)
+	if len(libs) == 0 {
+		t.Skip("no show libraries found")
+	}
+	lib := libs[0]
 
 	err = plexConn.GetLibraryShows(lib, "")
 	if err != nil {
@@ -56,6 +67,9 @@ func TestPlex_GetLibraryShows(t *testing.T) {
 }
 
 func TestPlex_GetShowEpisodes(t *testing.T) {
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
 	libraries, err := plexConn.GetLibraries()
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +77,11 @@ func TestPlex_GetShowEpisodes(t *testing.T) {
 	if len(libraries) == 0 {
 		t.Fatal("no libraries found")
 	}
-	lib := libraries.Type(library.TypeShow)[0]
+	libs := libraries.Type(library.TypeShow)
+	if len(libs) == 0 {
+		t.Skip("no show libraries found")
+	}
+	lib := libs[0]
 
 	err = plexConn.GetLibraryShows(lib, "")
 	if err != nil {
@@ -74,6 +92,9 @@ func TestPlex_GetShowEpisodes(t *testing.T) {
 	}
 
 	sh := lib.Shows.FindTitle("Bluey")
+	if sh == nil {
+		t.Skip("Bluey not found")
+	}
 
 	err = plexConn.GetShowEpisodes(sh)
 	if err != nil {
@@ -87,22 +108,27 @@ func TestPlex_GetShowEpisodes(t *testing.T) {
 			t.Fatal("no episodes found")
 		}
 	}
-
 }
 
 func TestPlex_PopulateLibraries(t *testing.T) {
-	libraries, err := plexConn.PopulateLibraries()
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
+	err := plexConn.InitLibraries()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(libraries) == 0 {
+	done := plexConn.PopulateLibraries()
+	done()
+	if len(plexConn.Libraries) == 0 {
 		t.Fatal("no libraries found")
 	}
-
 }
 
 func TestPlex_Scrobble(t *testing.T) {
-	// 9744
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
 	err := plexConn.Scrobble("9744")
 	if err != nil {
 		t.Fatal(err)
@@ -110,6 +136,9 @@ func TestPlex_Scrobble(t *testing.T) {
 }
 
 func TestPlex_Scan(t *testing.T) {
+	if plexConn == nil {
+		t.Skip("PLEX_HOST not set")
+	}
 	libraries, err := plexConn.GetLibraries()
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +146,11 @@ func TestPlex_Scan(t *testing.T) {
 	if len(libraries) == 0 {
 		t.Fatal("no libraries found")
 	}
-	lib := libraries.Type(library.TypeShow)[0]
+	libs := libraries.Type(library.TypeShow)
+	if len(libs) == 0 {
+		t.Skip("no show libraries found")
+	}
+	lib := libs[0]
 	err = plexConn.ScanLibrary(lib)
 	if err != nil {
 		t.Fatal(err)

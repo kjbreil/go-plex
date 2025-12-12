@@ -1,4 +1,4 @@
-package plex
+package api
 
 import (
 	"encoding/json"
@@ -6,21 +6,20 @@ import (
 	"strconv"
 )
 
-type boolOrInt struct {
-	bool
+type BoolOrInt struct {
+	Value bool
 }
 
-func (b *boolOrInt) UnmarshalJSON(data []byte) error {
+func (b *BoolOrInt) UnmarshalJSON(data []byte) error {
 	var isInt int
 
 	if err := json.Unmarshal(data, &isInt); err == nil {
 		if isInt == 0 || isInt == 1 {
-
 			if isInt != 0 && isInt != 1 {
-				return fmt.Errorf("invalid boolOrInt: %d", isInt)
+				return fmt.Errorf("invalid BoolOrInt: %d", isInt)
 			}
 
-			b.bool = isInt == 1
+			b.Value = isInt == 1
 
 			return nil
 		}
@@ -32,7 +31,7 @@ func (b *boolOrInt) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	b.bool = isBool
+	b.Value = isBool
 
 	return nil
 }

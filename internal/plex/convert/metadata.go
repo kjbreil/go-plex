@@ -1,15 +1,14 @@
-package plex
+package convert
 
 import (
-	"github.com/kjbreil/go-plex/library"
 	"time"
+
+	"github.com/kjbreil/go-plex/internal/plex/api"
+	"github.com/kjbreil/go-plex/pkg/library"
 )
 
-type MediaMetadata struct {
-	MediaContainer MediaContainer `json:"MediaContainer"`
-}
-
-func (m *MediaMetadata) Show() *library.Show {
+// MetadataToShow converts API metadata to a library Show.
+func MetadataToShow(m *api.MediaMetadata) *library.Show {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.Type == "show" {
 			return &library.Show{
@@ -26,7 +25,8 @@ func (m *MediaMetadata) Show() *library.Show {
 	return nil
 }
 
-func (m *MediaMetadata) Episode() *library.Episode {
+// MetadataToEpisode converts API metadata to a library Episode.
+func MetadataToEpisode(m *api.MediaMetadata) *library.Episode {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.Type == "episode" {
 			return &library.Episode{
@@ -45,7 +45,8 @@ func (m *MediaMetadata) Episode() *library.Episode {
 	return nil
 }
 
-func (m *MediaMetadata) updateShow(show *library.Show) {
+// UpdateShowFromMetadata updates a library Show with API metadata.
+func UpdateShowFromMetadata(m *api.MediaMetadata, show *library.Show) {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.GUID == show.GUID {
 			show.Title = md.Title
@@ -59,7 +60,8 @@ func (m *MediaMetadata) updateShow(show *library.Show) {
 	}
 }
 
-func (m *MediaMetadata) updateEpisode(ep *library.Episode) {
+// UpdateEpisodeFromMetadata updates a library Episode with API metadata.
+func UpdateEpisodeFromMetadata(m *api.MediaMetadata, ep *library.Episode) {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.GUID == ep.GUID {
 			ep.Title = md.Title
@@ -77,7 +79,8 @@ func (m *MediaMetadata) updateEpisode(ep *library.Episode) {
 	}
 }
 
-func (m *MediaMetadata) updateMovie(movie *library.Movie) {
+// UpdateMovieFromMetadata updates a library Movie with API metadata.
+func UpdateMovieFromMetadata(m *api.MediaMetadata, movie *library.Movie) {
 	for _, md := range m.MediaContainer.Metadata {
 		if md.GUID == movie.GUID {
 			movie.Title = md.Title
@@ -85,8 +88,6 @@ func (m *MediaMetadata) updateMovie(movie *library.Movie) {
 			movie.RatingKey = md.RatingKey
 			movie.ContentRating = md.ContentRating
 			movie.Summary = md.Summary
-			movie.ContentRating = md.ContentRating
-			movie.RatingKey = md.RatingKey
 			movie.TMDB = md.AltGUIDs.TMDB()
 			movie.LastViewedAt = timeOrNil(md.LastViewedAt)
 			movie.AddedAt = time.Unix(int64(md.AddedAt), 0)
