@@ -110,8 +110,6 @@ func (p *Plex) SubscribeToNotifications() {
 
 			if fn, ok := p.Websocket.events[notif.Type]; ok {
 				fn(notif.Container)
-			} else {
-				p.logger.Error("no event handler for type", "type", notif.Type, "message", notif.Container)
 			}
 		}
 	}()
