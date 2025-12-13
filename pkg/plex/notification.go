@@ -49,6 +49,10 @@ func (e *NotificationEvents) OnUpdateStateChange(fn func(n NotificationContainer
 
 // SubscribeToNotifications connects to your server via websockets listening for events.
 func (p *Plex) SubscribeToNotifications() {
+	if p.url == nil {
+		p.logger.Error("cannot subscribe to notifications: no URL configured")
+		return
+	}
 	websocketURL := url.URL{Scheme: "ws", Host: p.url.Host, Path: "/:/websockets/notifications"}
 
 	dialOpts := &websocket.DialOptions{
@@ -64,7 +68,7 @@ func (p *Plex) SubscribeToNotifications() {
 	dialOpts.HTTPHeader.Set("X-Plex-Token", p.token)
 
 	c, resp, dialErr := websocket.Dial(p.ctx, websocketURL.String(), dialOpts)
-	if resp != nil {
+	if resp != nil && resp.Body != nil {
 		_ = resp.Body.Close()
 	}
 

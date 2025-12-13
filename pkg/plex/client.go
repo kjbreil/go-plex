@@ -225,11 +225,8 @@ func (p *Plex) Scrobble(key string) error {
 	query.Add("key", key)
 	query.Add("identifier", "com.plexapp.plugins.library")
 
-	_, err := get[blank](p, "/:/", nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := get[blank](p, "/:/scrobble", query)
+	return err
 }
 
 func (p *Plex) UnScrobble(key string) error {
@@ -237,11 +234,8 @@ func (p *Plex) UnScrobble(key string) error {
 	query.Add("key", key)
 	query.Add("identifier", "com.plexapp.plugins.library")
 
-	_, err := get[blank](p, "/:/", nil)
-	if err != nil {
-		return err
-	}
-	return nil
+	_, err := get[blank](p, "/:/unscrobble", query)
+	return err
 }
 
 func (p *Plex) ScanLibrary(lib *library.Library) error {
